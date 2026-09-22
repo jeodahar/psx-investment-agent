@@ -3,10 +3,44 @@ import re
 import json
 from dotenv import load_dotenv
 from crewai import Agent, Task, Crew, Process
-from crewai_tools import DuckDuckGoSearchTool
+from crewai.tools import BaseTool
+from duckduckgo_search import DDGS
 from langchain_groq import ChatGroq
 
 load_dotenv()
+
+
+class DuckDuckGoSearchTool(BaseTool):
+    """Custom DuckDuckGo search tool.
+
+    crewai_tools has dropped/renamed its built-in DuckDuckGoSearchTool across
+    versions, so we wrap the `duckduckgo-search` package directly instead of
+    depending on crewai_tools for this.
+    """
+    name: str = "DuckDuckGo Search"
+    description: str = (
+        "Search the web via DuckDuckGo for a given query. "
+        "Input should be a plain search query string. "
+        "Returns the top result titles, snippets, and URLs."
+    )
+
+    def _run(self, query: str) -> str:
+        try:
+            with DDGS() as ddgs:
+                results = list(ddgs.text(query, max_results=5))
+        except Exception as e:
+            return f"Search failed for query '{query}': {e}"
+
+        if not results:
+            return f"No results found for '{query}'."
+
+        formatted = []
+        for r in results:
+            title = r.get("title", "")
+            snippet = r.get("body", "")
+            url = r.get("href", "")
+            formatted.append(f"Title: {title}\nSnippet: {snippet}\nURL: {url}")
+        return "\n\n".join(formatted)
 
 
 def get_llm():
