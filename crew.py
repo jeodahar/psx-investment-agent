@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import time
 from dotenv import load_dotenv
 from crewai import Agent, Task, Crew, Process, LLM
 from crewai.tools import BaseTool
@@ -16,7 +17,22 @@ load_dotenv()
 # sending, but the generic LiteLLM path (used for Groq) does not yet, so
 # Groq's API rejects the request with a schema validation error. This
 # strips the key before every LiteLLM call until that's fixed upstream.
+#
+# It also retries on Groq's TPM (tokens-per-minute) rate limit instead of
+# letting the whole crew run die on a single 429 — Groq's free tier is
+# only 8,000 TPM for this model, which a 3-agent pipeline can bump into.
 _original_completion = litellm.completion
+_MAX_RATE_LIMIT_RETRIES = 5
+
+
+def _extract_retry_seconds(message: str) -> float:
+    match = re.search(r"try again in\s*([\d.]+)s", message, flags=re.IGNORECASE)
+    if match:
+        try:
+            return float(match.group(1))
+        except ValueError:
+            pass
+    return 3.0
 
 
 def _patched_completion(*args, **kwargs):
@@ -26,7 +42,17 @@ def _patched_completion(*args, **kwargs):
             {k: v for k, v in m.items() if k != "cache_breakpoint"} if isinstance(m, dict) else m
             for m in messages
         ]
-    return _original_completion(*args, **kwargs)
+
+    last_err = None
+    for attempt in range(_MAX_RATE_LIMIT_RETRIES):
+        try:
+            return _original_completion(*args, **kwargs)
+        except litellm.RateLimitError as e:
+            last_err = e
+            wait = _extract_retry_seconds(str(e)) + 0.5
+            time.sleep(wait)
+    raise last_err
+# -------------------------------------------------------------------------
 
 
 litellm.completion = _patched_completion
@@ -50,7 +76,7 @@ class DuckDuckGoSearchTool(BaseTool):
     def _run(self, query: str) -> str:
         try:
             with DDGS() as ddgs:
-                results = list(ddgs.text(query, max_results=5))
+                results = list(ddgs.text(query, max_results=3))
         except Exception as e:
             return f"Search failed for query '{query}': {e}"
 
@@ -60,7 +86,7 @@ class DuckDuckGoSearchTool(BaseTool):
         formatted = []
         for r in results:
             title = r.get("title", "")
-            snippet = r.get("body", "")
+            snippet = (r.get("body", "") or "")[:220]
             url = r.get("href", "")
             formatted.append(f"Title: {title}\nSnippet: {snippet}\nURL: {url}")
         return "\n\n".join(formatted)
@@ -78,6 +104,7 @@ def get_llm():
         model="groq/openai/gpt-oss-120b",
         api_key=api_key,
         temperature=0.2,
+        max_tokens=700,
     )
 
 
@@ -97,6 +124,7 @@ def _build_crew(stock_symbol: str, budget: float, risk_profile: str):
         ),
         tools=[search_tool],
         llm=llm,
+        max_iter=3,
         verbose=True
     )
 
@@ -112,6 +140,7 @@ def _build_crew(stock_symbol: str, budget: float, risk_profile: str):
         ),
         tools=[search_tool],
         llm=llm,
+        max_iter=3,
         verbose=True
     )
 
@@ -215,7 +244,11 @@ def compare_stocks(symbols: list, budget: float, risk_profile: str) -> list:
     sorted by conviction score (highest first) for easy ranking."""
     results = []
     per_stock_budget = budget / max(len(symbols), 1)
-    for sym in symbols:
+    for i, sym in enumerate(symbols):
+        if i > 0:
+            # Give Groq's per-minute token budget some room to recover
+            # between stocks, on top of the in-call retry/backoff above.
+            time.sleep(8)
         try:
             results.append(run_psx_analysis(sym, per_stock_budget, risk_profile))
         except Exception as e:
