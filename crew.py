@@ -20,9 +20,13 @@ load_dotenv()
 #
 # It also retries on Groq's TPM (tokens-per-minute) rate limit instead of
 # letting the whole crew run die on a single 429 — Groq's free tier is
-# only 8,000 TPM for this model, which a 3-agent pipeline can bump into.
+# only 8,000 TPM for this model, which a 3-agent pipeline can bump into —
+# and paces every call with a minimum gap so we approach that ceiling
+# gradually instead of bursting into it.
 _original_completion = litellm.completion
 _MAX_RATE_LIMIT_RETRIES = 5
+_MIN_CALL_INTERVAL_SECONDS = 2.5
+_last_call_time = 0.0
 
 
 def _extract_retry_seconds(message: str) -> float:
@@ -36,6 +40,8 @@ def _extract_retry_seconds(message: str) -> float:
 
 
 def _patched_completion(*args, **kwargs):
+    global _last_call_time
+
     messages = kwargs.get("messages")
     if messages:
         kwargs["messages"] = [
@@ -43,20 +49,49 @@ def _patched_completion(*args, **kwargs):
             for m in messages
         ]
 
+    # Proactive pacing: never fire two completions closer together than this,
+    # so a burst of agent calls doesn't spike tokens-per-minute all at once.
+    elapsed = time.monotonic() - _last_call_time
+    if elapsed < _MIN_CALL_INTERVAL_SECONDS:
+        time.sleep(_MIN_CALL_INTERVAL_SECONDS - elapsed)
+
     last_err = None
     for attempt in range(_MAX_RATE_LIMIT_RETRIES):
         try:
-            return _original_completion(*args, **kwargs)
+            result = _original_completion(*args, **kwargs)
+            _last_call_time = time.monotonic()
+            return result
         except litellm.RateLimitError as e:
             last_err = e
             wait = _extract_retry_seconds(str(e)) + 0.5
             time.sleep(wait)
+    _last_call_time = time.monotonic()
     raise last_err
 # -------------------------------------------------------------------------
 
 
 litellm.completion = _patched_completion
 # -------------------------------------------------------------------------
+
+
+def _ddg_search(query: str, max_results: int = 2) -> str:
+    """Shared DuckDuckGo search helper used by both the CrewAI tool and the chat advisor."""
+    try:
+        with DDGS() as ddgs:
+            results = list(ddgs.text(query, max_results=max_results))
+    except Exception as e:
+        return f"Search failed for query '{query}': {e}"
+
+    if not results:
+        return f"No results found for '{query}'."
+
+    formatted = []
+    for r in results:
+        title = r.get("title", "")
+        snippet = (r.get("body", "") or "")[:150]
+        url = r.get("href", "")
+        formatted.append(f"Title: {title}\nSnippet: {snippet}\nURL: {url}")
+    return "\n\n".join(formatted)
 
 
 class DuckDuckGoSearchTool(BaseTool):
@@ -74,25 +109,10 @@ class DuckDuckGoSearchTool(BaseTool):
     )
 
     def _run(self, query: str) -> str:
-        try:
-            with DDGS() as ddgs:
-                results = list(ddgs.text(query, max_results=3))
-        except Exception as e:
-            return f"Search failed for query '{query}': {e}"
-
-        if not results:
-            return f"No results found for '{query}'."
-
-        formatted = []
-        for r in results:
-            title = r.get("title", "")
-            snippet = (r.get("body", "") or "")[:220]
-            url = r.get("href", "")
-            formatted.append(f"Title: {title}\nSnippet: {snippet}\nURL: {url}")
-        return "\n\n".join(formatted)
+        return _ddg_search(query, max_results=2)
 
 
-def get_llm():
+def get_llm(max_tokens: int = 500):
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
         raise ValueError("GROQ_API_KEY environment variable is missing.")
@@ -104,12 +124,18 @@ def get_llm():
         model="groq/openai/gpt-oss-120b",
         api_key=api_key,
         temperature=0.2,
-        max_tokens=700,
+        max_tokens=max_tokens,
     )
 
 
 def _build_crew(stock_symbol: str, budget: float, risk_profile: str):
-    llm = get_llm()
+    # Research/technical agents only need short prose summaries; the advisor
+    # has to fit the entire structured JSON (summaries + risks + action plan
+    # arrays) in one completion, so it gets a bigger token budget or its
+    # output gets cut off mid-JSON and fails to parse.
+    research_llm = get_llm(max_tokens=350)
+    technical_llm = get_llm(max_tokens=350)
+    advisor_llm = get_llm(max_tokens=1000)
     search_tool = DuckDuckGoSearchTool()
 
     researcher = Agent(
@@ -123,8 +149,8 @@ def _build_crew(stock_symbol: str, budget: float, risk_profile: str):
             "Business, Mettis Global) rather than generic global results."
         ),
         tools=[search_tool],
-        llm=llm,
-        max_iter=3,
+        llm=research_llm,
+        max_iter=2,
         verbose=True
     )
 
@@ -139,8 +165,8 @@ def _build_crew(stock_symbol: str, budget: float, risk_profile: str):
             "flagging your confidence as Low, Medium, or High."
         ),
         tools=[search_tool],
-        llm=llm,
-        max_iter=3,
+        llm=technical_llm,
+        max_iter=2,
         verbose=True
     )
 
@@ -153,7 +179,7 @@ def _build_crew(stock_symbol: str, budget: float, risk_profile: str):
             "size the position and set a stop-loss relative to the investor's stated budget and risk "
             "profile."
         ),
-        llm=llm,
+        llm=advisor_llm,
         verbose=True
     )
 
@@ -187,6 +213,9 @@ def _build_crew(stock_symbol: str, budget: float, risk_profile: str):
             f"recommendation for an investor with a PKR {budget:,.2f} budget and a "
             f"'{risk_profile}' risk profile. Weigh fundamentals 60% / technicals 40% into a single "
             "0-100 conviction score.\n\n"
+            "Keep every field brief so the whole response fits comfortably in one completion: "
+            "each summary field must be ONE sentence, and key_risks and action_plan must each have "
+            "AT MOST 3 short items.\n\n"
             "Return ONLY a JSON object with these exact keys, no markdown fences, no extra text:\n"
             "{\n"
             '  "symbol": string,\n'
@@ -195,13 +224,13 @@ def _build_crew(stock_symbol: str, budget: float, risk_profile: str):
             '  "entry_range_pkr": string,\n'
             '  "stop_loss_pkr": string,\n'
             '  "position_size_pkr": string,\n'
-            '  "fundamental_summary": string,\n'
-            '  "technical_summary": string,\n'
-            '  "key_risks": [string, ...],\n'
-            '  "action_plan": [string, ...]\n'
+            '  "fundamental_summary": string (1 sentence),\n'
+            '  "technical_summary": string (1 sentence),\n'
+            '  "key_risks": [string, ...] (max 3 items),\n'
+            '  "action_plan": [string, ...] (max 3 items)\n'
             "}"
         ),
-        expected_output="A single valid JSON object matching the schema above, and nothing else.",
+        expected_output="A single compact, valid JSON object matching the schema above, and nothing else.",
         agent=advisor,
         context=[research_task, technical_task]
     )
@@ -248,7 +277,7 @@ def compare_stocks(symbols: list, budget: float, risk_profile: str) -> list:
         if i > 0:
             # Give Groq's per-minute token budget some room to recover
             # between stocks, on top of the in-call retry/backoff above.
-            time.sleep(8)
+            time.sleep(12)
         try:
             results.append(run_psx_analysis(sym, per_stock_budget, risk_profile))
         except Exception as e:
@@ -259,3 +288,54 @@ def compare_stocks(symbols: list, budget: float, risk_profile: str) -> list:
         return s if isinstance(s, (int, float)) else -1
 
     return sorted(results, key=_score, reverse=True)
+
+
+# --- Lightweight chat advisor --------------------------------------------
+# A single plain completion (no multi-agent crew) so chatting stays fast and
+# cheap on the same Groq free-tier TPM budget. Optionally grounds the answer
+# with one DuckDuckGo search of the latest user message.
+
+_CHAT_SYSTEM_PROMPT = (
+    "You are a PSX (Pakistan Stock Exchange) investment research assistant. You give "
+    "educational, risk-aware guidance: fundamentals, technicals, sector context, "
+    "diversification, position sizing, and stop-losses. You are NOT a licensed financial "
+    "advisor and you never guarantee returns or issue unconditional buy/sell orders — frame "
+    "suggestions as conditional on the investor's own risk tolerance, and tell them to verify "
+    "against official PSX filings or a licensed broker before acting. Keep answers concise "
+    "and practical, in plain language."
+)
+
+
+def chat_with_advisor(messages: list, use_search: bool = False) -> str:
+    """Answer one turn of a chat conversation.
+
+    messages: list of {"role": "user"|"assistant", "content": str}, oldest first.
+    use_search: if True, runs one DuckDuckGo search on the latest user message
+    and feeds the results in as extra context before answering.
+    """
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        raise ValueError("GROQ_API_KEY environment variable is missing.")
+
+    convo = [{"role": "system", "content": _CHAT_SYSTEM_PROMPT}]
+
+    if use_search and messages:
+        last_user = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
+        if last_user:
+            results = _ddg_search(last_user, max_results=3)
+            convo.append({
+                "role": "system",
+                "content": f"Recent web search results that may help answer the next question:\n\n{results}"
+            })
+
+    # Cap history so a long-running chat doesn't blow the per-minute token budget.
+    convo.extend(messages[-6:])
+
+    response = litellm.completion(
+        model="groq/openai/gpt-oss-120b",
+        api_key=api_key,
+        temperature=0.3,
+        max_tokens=400,
+        messages=convo,
+    )
+    return response["choices"][0]["message"]["content"]

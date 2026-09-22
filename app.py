@@ -1,5 +1,6 @@
 import os
 import streamlit as st
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="PSX AI Investment Assistant", layout="wide", page_icon="📈")
 
@@ -66,7 +67,9 @@ def render_verdict(v: dict):
             st.markdown(f"{i}. {step}")
 
 
-tab_single, tab_compare = st.tabs(["🔍 Analyze one stock", "⚖️ Compare & rank several"])
+tab_single, tab_compare, tab_chart, tab_chat = st.tabs(
+    ["🔍 Analyze one stock", "⚖️ Compare & rank several", "📉 Live Market Chart", "💬 Chat Advisor"]
+)
 
 with tab_single:
     with st.form("psx_single_form"):
@@ -128,6 +131,88 @@ with tab_compare:
                         st.divider()
                 except Exception as e:
                     st.error(f"Error executing agent: {str(e)}")
+
+with tab_chart:
+    st.caption(
+        "Live TradingView chart for PSX. Type any PSX symbol (e.g. KSE100, FFC, OGDC, SYS, MEBL, HBL) "
+        "or use the chart's own symbol search."
+    )
+    chart_symbol = st.text_input("Symbol", value="KSE100", key="chart_symbol").strip().upper()
+    tv_symbol = f"PSX:{chart_symbol}" if chart_symbol else "PSX:KSE100"
+
+    tradingview_html = f"""
+    <div class="tradingview-widget-container">
+      <div id="tradingview_chart"></div>
+      <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+      <script type="text/javascript">
+      new TradingView.widget({{
+        "width": "100%",
+        "height": 520,
+        "symbol": "{tv_symbol}",
+        "interval": "D",
+        "timezone": "Asia/Karachi",
+        "theme": "light",
+        "style": "1",
+        "locale": "en",
+        "toolbar_bg": "#f1f3f6",
+        "enable_publishing": false,
+        "allow_symbol_change": true,
+        "hide_side_toolbar": false,
+        "container_id": "tradingview_chart"
+      }});
+      </script>
+    </div>
+    """
+    components.html(tradingview_html, height=540, scrolling=False)
+    st.caption(
+        "Chart data comes directly from TradingView, not from this app's own agents — "
+        "if a symbol shows no data, try the chart's built-in symbol search icon to find the exact PSX listing."
+    )
+
+with tab_chat:
+    st.caption(
+        "Ask general PSX investing questions — sector picks, how to size a position, what a P/E ratio "
+        "means, etc. This is a single lightweight assistant call, separate from the research pipeline "
+        "in the other tabs, so it stays fast."
+    )
+
+    if "chat_messages" not in st.session_state:
+        st.session_state.chat_messages = []
+
+    use_search = st.checkbox(
+        "🔎 Include a live web search for this question (slower, more current)",
+        value=False,
+        key="chat_use_search"
+    )
+
+    for msg in st.session_state.chat_messages:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+
+    user_prompt = st.chat_input("Ask about PSX investing...")
+    if user_prompt:
+        if not os.getenv("GROQ_API_KEY"):
+            st.error("Please provide a Groq API Key in the sidebar, or set it in Streamlit Cloud secrets.")
+        else:
+            st.session_state.chat_messages.append({"role": "user", "content": user_prompt})
+            with st.chat_message("user"):
+                st.markdown(user_prompt)
+
+            with st.chat_message("assistant"):
+                with st.spinner("Thinking..."):
+                    try:
+                        from crew import chat_with_advisor
+                        reply = chat_with_advisor(st.session_state.chat_messages, use_search=use_search)
+                    except Exception as e:
+                        reply = f"Error: {str(e)}"
+                st.markdown(reply)
+
+            st.session_state.chat_messages.append({"role": "assistant", "content": reply})
+
+    if st.session_state.chat_messages:
+        if st.button("🗑️ Clear chat"):
+            st.session_state.chat_messages = []
+            st.rerun()
 
 st.info(
     "⚠️ **Disclaimer:** Educational tool only, not financial advice. The conviction score reflects the "
