@@ -2,10 +2,9 @@ import os
 import re
 import json
 from dotenv import load_dotenv
-from crewai import Agent, Task, Crew, Process
+from crewai import Agent, Task, Crew, Process, LLM
 from crewai.tools import BaseTool
 from duckduckgo_search import DDGS
-from langchain_groq import ChatGroq
 
 load_dotenv()
 
@@ -47,10 +46,14 @@ def get_llm():
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
         raise ValueError("GROQ_API_KEY environment variable is missing.")
-    return ChatGroq(
+    # crewai's Agent no longer accepts a LangChain LLM object directly — it
+    # wants either a plain model string or crewai's own LLM class, which
+    # routes through litellm. The "groq/" prefix tells litellm which provider
+    # to use.
+    return LLM(
+        model="groq/openai/gpt-oss-120b",
+        api_key=api_key,
         temperature=0.2,
-        model_name="openai/gpt-oss-120b",
-        groq_api_key=api_key
     )
 
 
