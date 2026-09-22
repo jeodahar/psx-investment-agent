@@ -9,7 +9,9 @@ from duckduckgo_search import DDGS
 import litellm
 
 load_dotenv()
-
+   git add crew.py
+   git commit -m "Add chat_with_advisor"
+   git push
 
 # --- Compatibility patch -----------------------------------------------
 # Newer crewai versions tag messages with an internal "cache_breakpoint"
