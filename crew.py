@@ -5,8 +5,32 @@ from dotenv import load_dotenv
 from crewai import Agent, Task, Crew, Process, LLM
 from crewai.tools import BaseTool
 from duckduckgo_search import DDGS
+import litellm
 
 load_dotenv()
+
+
+# --- Compatibility patch -----------------------------------------------
+# Newer crewai versions tag messages with an internal "cache_breakpoint"
+# key for prompt caching. OpenAI/Anthropic's native paths strip it before
+# sending, but the generic LiteLLM path (used for Groq) does not yet, so
+# Groq's API rejects the request with a schema validation error. This
+# strips the key before every LiteLLM call until that's fixed upstream.
+_original_completion = litellm.completion
+
+
+def _patched_completion(*args, **kwargs):
+    messages = kwargs.get("messages")
+    if messages:
+        kwargs["messages"] = [
+            {k: v for k, v in m.items() if k != "cache_breakpoint"} if isinstance(m, dict) else m
+            for m in messages
+        ]
+    return _original_completion(*args, **kwargs)
+
+
+litellm.completion = _patched_completion
+# -------------------------------------------------------------------------
 
 
 class DuckDuckGoSearchTool(BaseTool):
