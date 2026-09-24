@@ -23,15 +23,24 @@ st.markdown("""
 html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; }
 
-.stApp {
-    background:
-        radial-gradient(circle at 12% -10%, rgba(56,189,248,0.20), transparent 40%),
-        radial-gradient(circle at 100% 0%, rgba(139,92,246,0.16), transparent 45%),
-        linear-gradient(180deg, #03060d 0%, #060b16 55%, #03060d 100%);
-    color: #eaf2fb;
+/* Force the dark theme regardless of load-order against Streamlit's own
+   default (light) stylesheet — every selector Streamlit might wrap the
+   page in, all with !important so nothing can win the cascade tie. */
+html, body,
+.stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stHeader"],
+[data-testid="stToolbar"],
+[data-testid="stMain"],
+.main, .block-container {
+    background: radial-gradient(circle at 12% -10%, rgba(56,189,248,0.20), transparent 40%),
+                radial-gradient(circle at 100% 0%, rgba(139,92,246,0.16), transparent 45%),
+                linear-gradient(180deg, #03060d 0%, #060b16 55%, #03060d 100%) !important;
+    color: #eaf2fb !important;
 }
+[data-testid="stHeader"] { background: transparent !important; }
 section[data-testid="stSidebar"] {
-    background: #04070f;
+    background: #04070f !important;
     border-right: 1px solid rgba(56,189,248,0.15);
 }
 
