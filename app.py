@@ -15,7 +15,7 @@ def now_str() -> str:
     return datetime.now(PKT).strftime("%d %b %Y, %I:%M:%S %p PKT")
 
 
-# --- Modern neon-AI styling -------------------------------------------------
+# --- Clean light modern styling ---------------------------------------------
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
@@ -23,9 +23,9 @@ st.markdown("""
 html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; }
 
-/* Force the dark theme regardless of load-order against Streamlit's own
-   default (light) stylesheet — every selector Streamlit might wrap the
-   page in, all with !important so nothing can win the cascade tie. */
+/* Force the light theme regardless of load-order against Streamlit's own
+   stylesheet — every selector Streamlit might wrap the page in, all with
+   !important so nothing can win the cascade tie. */
 html, body,
 .stApp,
 [data-testid="stAppViewContainer"],
@@ -33,123 +33,124 @@ html, body,
 [data-testid="stToolbar"],
 [data-testid="stMain"],
 .main, .block-container {
-    background: radial-gradient(circle at 12% -10%, rgba(56,189,248,0.20), transparent 40%),
-                radial-gradient(circle at 100% 0%, rgba(139,92,246,0.16), transparent 45%),
-                linear-gradient(180deg, #03060d 0%, #060b16 55%, #03060d 100%) !important;
-    color: #eaf2fb !important;
+    background: radial-gradient(circle at 12% -10%, rgba(59,130,246,0.08), transparent 40%),
+                radial-gradient(circle at 100% 0%, rgba(96,165,250,0.10), transparent 45%),
+                linear-gradient(180deg, #ffffff 0%, #f4f8fd 55%, #ffffff 100%) !important;
+    color: #1e293b !important;
 }
 [data-testid="stHeader"] { background: transparent !important; }
 section[data-testid="stSidebar"] {
-    background: #04070f !important;
-    border-right: 1px solid rgba(56,189,248,0.15);
+    background: #f7fafd !important;
+    border-right: 1px solid rgba(59,130,246,0.15);
 }
 
 .hero {
     padding: 2rem 2.1rem;
     border-radius: 24px;
-    background: linear-gradient(135deg, rgba(56,189,248,0.12), rgba(139,92,246,0.12));
-    border: 1px solid rgba(56,189,248,0.25);
-    box-shadow: 0 0 40px rgba(56,189,248,0.08);
+    background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(96,165,250,0.10));
+    border: 1px solid rgba(59,130,246,0.18);
+    box-shadow: 0 4px 24px rgba(59,130,246,0.08);
     margin-bottom: 1.4rem;
 }
 .hero h1 {
     margin: 0; font-size: 2.1rem; font-weight: 700; letter-spacing: -0.02em;
-    background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
+    background: linear-gradient(90deg, #2563eb, #3b82f6, #60a5fa);
     -webkit-background-clip: text; background-clip: text; color: transparent !important;
 }
-.hero p { margin: 0.4rem 0 0 0; color: #93a5c4; font-size: 0.95rem; }
+.hero p { margin: 0.4rem 0 0 0; color: #64748b !important; font-size: 0.95rem; }
 
 .stock-card, .news-card, .verdict-card {
-    background: rgba(255,255,255,0.035);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(56,189,248,0.18);
+    background: #ffffff;
+    border: 1px solid rgba(59,130,246,0.14);
     border-radius: 18px;
+    box-shadow: 0 2px 12px rgba(15,23,42,0.04);
     transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 .stock-card:hover, .news-card:hover {
-    border-color: rgba(56,189,248,0.5);
-    box-shadow: 0 0 24px rgba(56,189,248,0.15);
+    border-color: rgba(59,130,246,0.4);
+    box-shadow: 0 6px 20px rgba(59,130,246,0.12);
 }
 
 .stock-card { padding: 1rem 1.1rem; height: 100%; }
-.stock-card .ticker { font-weight: 700; font-size: 1.05rem; color: #f5f7fa; }
-.stock-card .sector { color: #8ea3b8; font-size: 0.82rem; margin-top: 2px; }
+.stock-card .ticker { font-weight: 700; font-size: 1.05rem; color: #0f172a; }
+.stock-card .sector { color: #64748b; font-size: 0.82rem; margin-top: 2px; }
 .stock-card .tag {
     display: inline-block; margin-top: 8px; padding: 2px 10px;
     border-radius: 999px; font-size: 0.72rem; font-weight: 600;
-    background: rgba(56,189,248,0.15); color: #38bdf8;
+    background: rgba(59,130,246,0.10); color: #2563eb;
 }
 
 .verdict-card { padding: 1.2rem 1.4rem; margin-bottom: 0.9rem; }
-.verdict-buy { border-left: 4px solid #22c55e; box-shadow: -4px 0 16px rgba(34,197,94,0.12); }
-.verdict-hold { border-left: 4px solid #eab308; box-shadow: -4px 0 16px rgba(234,179,8,0.12); }
-.verdict-avoid { border-left: 4px solid #ef4444; box-shadow: -4px 0 16px rgba(239,68,68,0.12); }
+.verdict-buy { border-left: 4px solid #16a34a; }
+.verdict-hold { border-left: 4px solid #ca8a04; }
+.verdict-avoid { border-left: 4px solid #dc2626; }
 .verdict-unknown { border-left: 4px solid #64748b; }
 
 .badge { display: inline-block; padding: 4px 14px; border-radius: 999px; font-weight: 700; font-size: 0.78rem; letter-spacing: 0.02em; }
-.badge-buy { background: rgba(34,197,94,0.18); color: #4ade80; box-shadow: 0 0 12px rgba(34,197,94,0.25); }
-.badge-hold { background: rgba(234,179,8,0.18); color: #facc15; box-shadow: 0 0 12px rgba(234,179,8,0.25); }
-.badge-avoid { background: rgba(239,68,68,0.18); color: #f87171; box-shadow: 0 0 12px rgba(239,68,68,0.25); }
-.badge-unknown { background: rgba(100,116,139,0.18); color: #94a3b8; }
+.badge-buy { background: rgba(22,163,74,0.12); color: #16a34a; }
+.badge-hold { background: rgba(202,138,4,0.12); color: #ca8a04; }
+.badge-avoid { background: rgba(220,38,38,0.12); color: #dc2626; }
+.badge-unknown { background: rgba(100,116,139,0.12); color: #64748b; }
 
 .news-card { padding: 1rem 1.2rem; margin-bottom: 0.8rem; }
-.news-card .news-title { font-weight: 700; font-size: 1rem; color: #eaf2fb; }
-.news-card .news-snippet { color: #a9bad2; font-size: 0.85rem; margin-top: 4px; }
-.news-card a { color: #38bdf8; text-decoration: none; font-size: 0.8rem; }
+.news-card .news-title { font-weight: 700; font-size: 1rem; color: #0f172a; }
+.news-card .news-snippet { color: #475569; font-size: 0.85rem; margin-top: 4px; }
+.news-card a { color: #2563eb; text-decoration: none; font-size: 0.8rem; }
 .news-card a:hover { text-decoration: underline; }
 
-.timestamp { color: #5f7a99; font-size: 0.78rem; margin-top: 0.5rem; }
-.psx-lock-note { color: #818cf8; font-size: 0.8rem; margin-top: 0.4rem; }
+.timestamp { color: #94a3b8; font-size: 0.78rem; margin-top: 0.5rem; }
+.psx-lock-note { color: #3b82f6; font-size: 0.8rem; margin-top: 0.4rem; }
 
 div.stButton > button {
     border-radius: 12px; font-weight: 600;
-    background: linear-gradient(90deg, rgba(56,189,248,0.15), rgba(139,92,246,0.15));
-    border: 1px solid rgba(56,189,248,0.35); color: #eaf2fb;
+    background: #ffffff;
+    border: 1px solid rgba(59,130,246,0.35); color: #2563eb;
 }
 div.stButton > button:hover {
-    border-color: rgba(56,189,248,0.7); box-shadow: 0 0 16px rgba(56,189,248,0.25);
+    border-color: #3b82f6; box-shadow: 0 4px 14px rgba(59,130,246,0.18);
+    background: rgba(59,130,246,0.06);
 }
 
-hr { border-color: rgba(56,189,248,0.12); }
+hr { border-color: rgba(59,130,246,0.15); }
 
 .stTabs [data-baseweb="tab-list"] { gap: 6px; }
 .stTabs [data-baseweb="tab"] {
-    background: rgba(255,255,255,0.03); border-radius: 10px 10px 0 0;
-    border: 1px solid rgba(56,189,248,0.15); border-bottom: none;
+    background: #ffffff; border-radius: 10px 10px 0 0;
+    border: 1px solid rgba(59,130,246,0.15); border-bottom: none;
 }
 .stTabs [aria-selected="true"] {
-    background: rgba(56,189,248,0.12) !important;
-    box-shadow: 0 -2px 12px rgba(56,189,248,0.15);
+    background: rgba(59,130,246,0.08) !important;
+    box-shadow: 0 -2px 10px rgba(59,130,246,0.08);
 }
 
 /* --- Native widget text: force legible color on components the base */
 /* background-color override above doesn't reach on its own ------------- */
-.stTabs [data-baseweb="tab"] p { color: #cfe0f5 !important; }
+.stTabs [data-baseweb="tab"] p { color: #334155 !important; }
 [data-testid="stWidgetLabel"] p,
 [data-testid="stWidgetLabel"] label,
 .stMarkdown p, .stMarkdown li, .stMarkdown span,
 [data-testid="stMarkdownContainer"] p {
-    color: #dbe6f3 !important;
+    color: #334155 !important;
 }
-[data-testid="stMetricLabel"] { color: #93a5c4 !important; }
-[data-testid="stMetricValue"] { color: #eaf2fb !important; }
-[data-testid="stCaptionContainer"] { color: #8ea3b8 !important; }
+[data-testid="stMetricLabel"] { color: #64748b !important; }
+[data-testid="stMetricValue"] { color: #0f172a !important; }
+[data-testid="stCaptionContainer"] { color: #64748b !important; }
 .stTextInput input, .stNumberInput input, .stTextArea textarea {
-    color: #eaf2fb !important;
-    background: rgba(255,255,255,0.04) !important;
-    border: 1px solid rgba(56,189,248,0.2) !important;
+    color: #0f172a !important;
+    background: #ffffff !important;
+    border: 1px solid rgba(59,130,246,0.25) !important;
 }
-[data-baseweb="select"] * { color: #eaf2fb !important; }
-[data-baseweb="select"] > div { background: rgba(255,255,255,0.04) !important; }
+[data-baseweb="select"] * { color: #0f172a !important; }
+[data-baseweb="select"] > div { background: #ffffff !important; }
 [data-testid="stAlert"] {
-    color: #eaf2fb !important;
-    background: rgba(56,189,248,0.08) !important;
-    border: 1px solid rgba(56,189,248,0.25) !important;
+    color: #0f172a !important;
+    background: rgba(59,130,246,0.06) !important;
+    border: 1px solid rgba(59,130,246,0.2) !important;
 }
-[data-testid="stAlert"] p { color: #eaf2fb !important; }
-section[data-testid="stSidebar"] * { color: #dbe6f3 !important; }
-[data-testid="stChatMessage"] p { color: #eaf2fb !important; }
-h1, h2, h3, h4, h5, h6 { color: #eaf2fb !important; }
+[data-testid="stAlert"] p { color: #0f172a !important; }
+section[data-testid="stSidebar"] * { color: #334155 !important; }
+[data-testid="stChatMessage"] p { color: #0f172a !important; }
+h1, h2, h3, h4, h5, h6 { color: #0f172a !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -344,7 +345,7 @@ with tab_chart:
         "showSymbolLogo": true,
         "isTransparent": true,
         "displayMode": "adaptive",
-        "colorTheme": "dark",
+        "colorTheme": "light",
         "locale": "en"
       }}
       </script>
@@ -377,10 +378,10 @@ with tab_chart:
         "symbol": "{tv_symbol}",
         "interval": "D",
         "timezone": "Asia/Karachi",
-        "theme": "dark",
+        "theme": "light",
         "style": "1",
         "locale": "en",
-        "toolbar_bg": "#0b1420",
+        "toolbar_bg": "#f4f8fd",
         "enable_publishing": false,
         "allow_symbol_change": false,
         "hide_side_toolbar": false,
