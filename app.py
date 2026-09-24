@@ -46,7 +46,7 @@ section[data-testid="stSidebar"] {
 .hero h1 {
     margin: 0; font-size: 2.1rem; font-weight: 700; letter-spacing: -0.02em;
     background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
+    -webkit-background-clip: text; background-clip: text; color: transparent !important;
 }
 .hero p { margin: 0.4rem 0 0 0; color: #93a5c4; font-size: 0.95rem; }
 
@@ -112,6 +112,35 @@ hr { border-color: rgba(56,189,248,0.12); }
     background: rgba(56,189,248,0.12) !important;
     box-shadow: 0 -2px 12px rgba(56,189,248,0.15);
 }
+
+/* --- Native widget text: force legible color on components the base */
+/* background-color override above doesn't reach on its own ------------- */
+.stTabs [data-baseweb="tab"] p { color: #cfe0f5 !important; }
+[data-testid="stWidgetLabel"] p,
+[data-testid="stWidgetLabel"] label,
+.stMarkdown p, .stMarkdown li, .stMarkdown span,
+[data-testid="stMarkdownContainer"] p {
+    color: #dbe6f3 !important;
+}
+[data-testid="stMetricLabel"] { color: #93a5c4 !important; }
+[data-testid="stMetricValue"] { color: #eaf2fb !important; }
+[data-testid="stCaptionContainer"] { color: #8ea3b8 !important; }
+.stTextInput input, .stNumberInput input, .stTextArea textarea {
+    color: #eaf2fb !important;
+    background: rgba(255,255,255,0.04) !important;
+    border: 1px solid rgba(56,189,248,0.2) !important;
+}
+[data-baseweb="select"] * { color: #eaf2fb !important; }
+[data-baseweb="select"] > div { background: rgba(255,255,255,0.04) !important; }
+[data-testid="stAlert"] {
+    color: #eaf2fb !important;
+    background: rgba(56,189,248,0.08) !important;
+    border: 1px solid rgba(56,189,248,0.25) !important;
+}
+[data-testid="stAlert"] p { color: #eaf2fb !important; }
+section[data-testid="stSidebar"] * { color: #dbe6f3 !important; }
+[data-testid="stChatMessage"] p { color: #eaf2fb !important; }
+h1, h2, h3, h4, h5, h6 { color: #eaf2fb !important; }
 </style>
 """, unsafe_allow_html=True)
 
