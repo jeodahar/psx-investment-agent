@@ -290,6 +290,31 @@ def compare_stocks(symbols: list, budget: float, risk_profile: str) -> list:
     return sorted(results, key=_score, reverse=True)
 
 
+# --- Live PSX news feed ----------------------------------------------------
+# Plain DuckDuckGo search, no LLM call involved at all — so this never
+# touches the Groq token/rate-limit budget and stays fast.
+
+def fetch_psx_news(query: str = "Pakistan Stock Exchange PSX KSE-100 news today", max_results: int = 6) -> list:
+    """Return a list of {'title', 'snippet', 'url'} dicts for a news-style search."""
+    try:
+        with DDGS() as ddgs:
+            results = list(ddgs.text(query, max_results=max_results))
+    except Exception as e:
+        return [{"title": "Could not fetch news", "snippet": str(e), "url": ""}]
+
+    if not results:
+        return [{"title": "No results found", "snippet": f"Try a different search term than '{query}'.", "url": ""}]
+
+    news = []
+    for r in results:
+        news.append({
+            "title": r.get("title", ""),
+            "snippet": (r.get("body", "") or "")[:260],
+            "url": r.get("href", ""),
+        })
+    return news
+
+
 # --- Lightweight chat advisor --------------------------------------------
 # A single plain completion (no multi-agent crew) so chatting stays fast and
 # cheap on the same Groq free-tier TPM budget. Optionally grounds the answer

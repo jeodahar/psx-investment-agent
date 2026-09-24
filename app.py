@@ -15,69 +15,103 @@ def now_str() -> str:
     return datetime.now(PKT).strftime("%d %b %Y, %I:%M:%S %p PKT")
 
 
-# --- Modern styling --------------------------------------------------------
+# --- Modern neon-AI styling -------------------------------------------------
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 
 html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; }
 
 .stApp {
-    background: radial-gradient(circle at 10% 0%, #101b2d 0%, #0a1220 45%, #060a12 100%);
-    color: #e8ecf3;
+    background:
+        radial-gradient(circle at 12% -10%, rgba(56,189,248,0.20), transparent 40%),
+        radial-gradient(circle at 100% 0%, rgba(139,92,246,0.16), transparent 45%),
+        linear-gradient(180deg, #03060d 0%, #060b16 55%, #03060d 100%);
+    color: #eaf2fb;
 }
 section[data-testid="stSidebar"] {
-    background: #0b1420;
-    border-right: 1px solid rgba(255,255,255,0.06);
+    background: #04070f;
+    border-right: 1px solid rgba(56,189,248,0.15);
 }
-.hero {
-    padding: 1.6rem 1.8rem;
-    border-radius: 20px;
-    background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(59,130,246,0.10));
-    border: 1px solid rgba(255,255,255,0.08);
-    margin-bottom: 1.2rem;
-}
-.hero h1 { margin: 0; font-size: 1.9rem; font-weight: 800; letter-spacing: -0.02em; }
-.hero p { margin: 0.35rem 0 0 0; color: #9fb0c3; font-size: 0.95rem; }
 
-.stock-card {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 16px;
-    padding: 1rem 1.1rem;
-    height: 100%;
+.hero {
+    padding: 2rem 2.1rem;
+    border-radius: 24px;
+    background: linear-gradient(135deg, rgba(56,189,248,0.12), rgba(139,92,246,0.12));
+    border: 1px solid rgba(56,189,248,0.25);
+    box-shadow: 0 0 40px rgba(56,189,248,0.08);
+    margin-bottom: 1.4rem;
 }
+.hero h1 {
+    margin: 0; font-size: 2.1rem; font-weight: 700; letter-spacing: -0.02em;
+    background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.hero p { margin: 0.4rem 0 0 0; color: #93a5c4; font-size: 0.95rem; }
+
+.stock-card, .news-card, .verdict-card {
+    background: rgba(255,255,255,0.035);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(56,189,248,0.18);
+    border-radius: 18px;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.stock-card:hover, .news-card:hover {
+    border-color: rgba(56,189,248,0.5);
+    box-shadow: 0 0 24px rgba(56,189,248,0.15);
+}
+
+.stock-card { padding: 1rem 1.1rem; height: 100%; }
 .stock-card .ticker { font-weight: 700; font-size: 1.05rem; color: #f5f7fa; }
 .stock-card .sector { color: #8ea3b8; font-size: 0.82rem; margin-top: 2px; }
 .stock-card .tag {
     display: inline-block; margin-top: 8px; padding: 2px 10px;
     border-radius: 999px; font-size: 0.72rem; font-weight: 600;
-    background: rgba(16,185,129,0.15); color: #34d399;
+    background: rgba(56,189,248,0.15); color: #38bdf8;
 }
 
-.verdict-card {
-    border-radius: 18px;
-    padding: 1.2rem 1.4rem;
-    border: 1px solid rgba(255,255,255,0.08);
-    background: rgba(255,255,255,0.03);
-    margin-bottom: 0.9rem;
-}
-.verdict-buy { border-left: 5px solid #22c55e; }
-.verdict-hold { border-left: 5px solid #eab308; }
-.verdict-avoid { border-left: 5px solid #ef4444; }
-.verdict-unknown { border-left: 5px solid #64748b; }
+.verdict-card { padding: 1.2rem 1.4rem; margin-bottom: 0.9rem; }
+.verdict-buy { border-left: 4px solid #22c55e; box-shadow: -4px 0 16px rgba(34,197,94,0.12); }
+.verdict-hold { border-left: 4px solid #eab308; box-shadow: -4px 0 16px rgba(234,179,8,0.12); }
+.verdict-avoid { border-left: 4px solid #ef4444; box-shadow: -4px 0 16px rgba(239,68,68,0.12); }
+.verdict-unknown { border-left: 4px solid #64748b; }
 
-.badge { display: inline-block; padding: 3px 12px; border-radius: 999px; font-weight: 700; font-size: 0.78rem; letter-spacing: 0.02em; }
-.badge-buy { background: rgba(34,197,94,0.18); color: #4ade80; }
-.badge-hold { background: rgba(234,179,8,0.18); color: #facc15; }
-.badge-avoid { background: rgba(239,68,68,0.18); color: #f87171; }
+.badge { display: inline-block; padding: 4px 14px; border-radius: 999px; font-weight: 700; font-size: 0.78rem; letter-spacing: 0.02em; }
+.badge-buy { background: rgba(34,197,94,0.18); color: #4ade80; box-shadow: 0 0 12px rgba(34,197,94,0.25); }
+.badge-hold { background: rgba(234,179,8,0.18); color: #facc15; box-shadow: 0 0 12px rgba(234,179,8,0.25); }
+.badge-avoid { background: rgba(239,68,68,0.18); color: #f87171; box-shadow: 0 0 12px rgba(239,68,68,0.25); }
 .badge-unknown { background: rgba(100,116,139,0.18); color: #94a3b8; }
 
-.timestamp { color: #6b7d90; font-size: 0.78rem; margin-top: 0.5rem; }
-.psx-lock-note { color: #7ea9ff; font-size: 0.8rem; margin-top: 0.4rem; }
+.news-card { padding: 1rem 1.2rem; margin-bottom: 0.8rem; }
+.news-card .news-title { font-weight: 700; font-size: 1rem; color: #eaf2fb; }
+.news-card .news-snippet { color: #a9bad2; font-size: 0.85rem; margin-top: 4px; }
+.news-card a { color: #38bdf8; text-decoration: none; font-size: 0.8rem; }
+.news-card a:hover { text-decoration: underline; }
 
-div.stButton > button { border-radius: 10px; font-weight: 600; }
-hr { border-color: rgba(255,255,255,0.08); }
+.timestamp { color: #5f7a99; font-size: 0.78rem; margin-top: 0.5rem; }
+.psx-lock-note { color: #818cf8; font-size: 0.8rem; margin-top: 0.4rem; }
+
+div.stButton > button {
+    border-radius: 12px; font-weight: 600;
+    background: linear-gradient(90deg, rgba(56,189,248,0.15), rgba(139,92,246,0.15));
+    border: 1px solid rgba(56,189,248,0.35); color: #eaf2fb;
+}
+div.stButton > button:hover {
+    border-color: rgba(56,189,248,0.7); box-shadow: 0 0 16px rgba(56,189,248,0.25);
+}
+
+hr { border-color: rgba(56,189,248,0.12); }
+
+.stTabs [data-baseweb="tab-list"] { gap: 6px; }
+.stTabs [data-baseweb="tab"] {
+    background: rgba(255,255,255,0.03); border-radius: 10px 10px 0 0;
+    border: 1px solid rgba(56,189,248,0.15); border-bottom: none;
+}
+.stTabs [aria-selected="true"] {
+    background: rgba(56,189,248,0.12) !important;
+    box-shadow: 0 -2px 12px rgba(56,189,248,0.15);
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -190,8 +224,8 @@ def render_verdict(v: dict, generated_at: str = None):
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-tab_single, tab_compare, tab_chart, tab_chat = st.tabs(
-    ["🔍 Analyze one stock", "⚖️ Compare & rank several", "📉 Live PSX Chart", "💬 Chat Advisor"]
+tab_single, tab_compare, tab_chart, tab_news, tab_chat = st.tabs(
+    ["🔍 Analyze one stock", "⚖️ Compare & rank several", "📉 Live PSX Chart", "📰 Live PSX News", "💬 Chat Advisor"]
 )
 
 with tab_single:
@@ -327,6 +361,59 @@ with tab_chart:
     )
     if st.button("🔄 Refresh timestamp"):
         st.rerun()
+
+with tab_news:
+    st.caption("Live PSX-related headlines pulled via search — refresh anytime. This never touches the Groq/agent pipeline, so it's fast and free of rate limits.")
+
+    if "news_query" not in st.session_state:
+        st.session_state.news_query = "Pakistan Stock Exchange PSX KSE-100 news today"
+
+    news_query_input = st.text_input("News topic", value=st.session_state.news_query, key="news_query_box")
+
+    st.caption("Quick picks:")
+    quick_cols = st.columns(6)
+    quick_picks = ["KSE-100", "FFC", "OGDC", "SYS", "MEBL", "HBL"]
+    quick_clicked = None
+    for qc, pick in zip(quick_cols, quick_picks):
+        if qc.button(pick, key=f"news_quick_{pick}"):
+            quick_clicked = f"PSX {pick} stock news today"
+
+    active_query = quick_clicked or news_query_input
+    st.session_state.news_query = active_query
+
+    fetch_clicked = st.button("🔄 Fetch latest news", key="fetch_news_btn")
+
+    if fetch_clicked or quick_clicked or "news_results" not in st.session_state:
+        with st.spinner(f"Fetching latest news for '{active_query}'..."):
+            try:
+                from crew import fetch_psx_news
+                st.session_state.news_results = fetch_psx_news(active_query, max_results=6)
+                st.session_state.news_fetched_at = now_str()
+                st.session_state.news_fetched_query = active_query
+            except Exception as e:
+                st.session_state.news_results = [{"title": "Error fetching news", "snippet": str(e), "url": ""}]
+                st.session_state.news_fetched_at = now_str()
+                st.session_state.news_fetched_query = active_query
+
+    if st.session_state.get("news_results"):
+        st.markdown(
+            f'<div class="timestamp">🕒 Last fetched: {st.session_state.get("news_fetched_at", "—")} '
+            f'&nbsp;·&nbsp; query: "{st.session_state.get("news_fetched_query", "")}"</div>',
+            unsafe_allow_html=True
+        )
+        st.write("")
+        for item in st.session_state.news_results:
+            title = item.get("title", "")
+            snippet = item.get("snippet", "")
+            url = item.get("url", "")
+            link_html = f'<a href="{url}" target="_blank">Read full article →</a>' if url else ""
+            st.markdown(f"""
+            <div class="news-card">
+              <div class="news-title">{title}</div>
+              <div class="news-snippet">{snippet}</div>
+              {link_html}
+            </div>
+            """, unsafe_allow_html=True)
 
 with tab_chat:
     st.caption(
